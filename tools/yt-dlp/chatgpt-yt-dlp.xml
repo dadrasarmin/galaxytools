@@ -1,0 +1,65 @@
+<tool id="yt-dlp" name="YT-DLP" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE_VERSION@">
+    <description>
+        yt-dlp is an open-source command-line program for downloading video and audio from hundreds
+        of websites, offering enhanced performance, flexible format selection, and extensive post-processing
+        features. On Galaxy, we offer it with limited options.
+    </description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <edam_topics>
+        <edam_topic>topic_0218</edam_topic>
+    </edam_topics>
+    <edam_operations>
+        <edam_operation>operation_2409</edam_operation>
+        <edam_operation>operation_0224</edam_operation>
+        <edam_operation>operation_2422</edam_operation>
+        <edam_operation>operation_2421</edam_operation>
+    </edam_operations>
+    <expand macro="requirements"/>
+    <command detect_errors="exit_code"><![CDATA[
+        mkdir download &&
+        #if $download_audio
+            yt-dlp -x --audio-format mp3 --restrict-filenames --audio-quality 5 --batch-file '$input_file' -P "download" -o '%(title)s.%(ext)s'
+        #else
+            yt-dlp --recode-video mp4 --restrict-filenames --batch-file '$input_file' -P "download" -o '%(title)s.%(ext)s'
+        #end if
+    ]]></command>
+    <inputs>
+        <param name="input_file" type="data" format="txt" label="URLs file" help="Text file with one URL per line" />
+        <param name="download_audio" type="boolean" truevalue="true" falsevalue="false" label="Download only Audio (MP3)" />
+    </inputs>
+    <outputs>
+        <collection type="list" name="video_outputs" label="Downloaded Videos">
+            <filter> download_audio is False </filter>
+            <discover_datasets pattern="__designation__" directory="download"  format="mp4" />
+        </collection>
+        <collection type="list" name="audio_outputs" label="Downloaded Audios">
+            <filter> download_audio is True </filter>
+            <discover_datasets pattern="__designation__" directory="download" format="mp3" />
+        </collection>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="input_file" value="input-test.txt" />
+            <param name="download_audio" value="true" />
+            <output_collection name="audio_outputs" type="list" count="6" />
+        </test>
+        <test expect_num_outputs="1">
+            <param name="input_file" value="input-test.txt" />
+            <param name="download_audio" value="false" />
+            <output_collection name="video_outputs" type="list" count="6" />
+        </test>
+    </tests>
+    <help><![CDATA[
+        **What it does**
+        yt-dlp is a feature-rich, open-source command-line downloader that fetches video and audio streams from various of sites.
+        **Input**
+        A plaintext file listing URLs, one per line.
+        **Output**
+        Downloaded audio/video files written according to the user inputs. Metadata or subtitle files will be provided when requested.
+    ]]></help>
+    <citations>
+        <expand macro="citations"/>
+    </citations>
+</tool>

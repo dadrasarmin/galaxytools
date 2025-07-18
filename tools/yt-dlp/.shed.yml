@@ -1,0 +1,13 @@
+owner: bgruening
+name: yt-dlp
+description: Download videos and audio from internet using the yt-dlp command-line tool.
+long_description: |
+   yt-dlp is a command-line program to download videos and audio from many other websites.
+   It’s a fork of youtube-dl with additional features, fixes, and extractors to keep up with
+   changes on video platforms.
+categories:
+  - Data Source
+  - Data Managers
+  - Convert Formats
+homepage_url: https://github.com/yt-dlp/yt-dlp
+remote_repository_url: https://github.com/bgruening/galaxytools/tree/master/tools/yt-dlp/

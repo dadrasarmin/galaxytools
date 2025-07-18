@@ -1,0 +1,174 @@
+<tool id="yt-dlp" name="YT-DLP" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE_VERSION@">
+    <description>
+        yt-dlp is an open-source command-line program for downloading video and audio from hundreds
+        of websites, offering enhanced performance, flexible format selection, and extensive post-processing
+        features. On Galaxy, we offer it with limited options.
+    </description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <edam_topics>
+        <edam_topic>topic_0218</edam_topic>
+    </edam_topics>
+    <edam_operations>
+        <edam_operation>operation_2409</edam_operation>
+        <edam_operation>operation_0224</edam_operation>
+        <edam_operation>operation_2422</edam_operation>
+        <edam_operation>operation_2421</edam_operation>
+    </edam_operations>
+    <requirements>
+        <requirement type="package" version="@TOOL_VERSION@">yt-dlp</requirement>
+        <requirement type="package" version="7.1.1">ffmpeg</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <script interpreter="bash"><![CDATA[
+            #!/usr/bin/env bash
+            # split URLs into supported / unsupported based on whitelist
+            supported="supported_urls.txt"
+            unsupported="unsupported_urls.txt"
+            grep -E '^(https?://(www\.)?(youtube\.com|vimeo\.com|instagram\.com|tiktok\.com|mastodon\.social|bsky\.app|x\.com|linkedin\.com|twitch\.tv|cnn\.com|bbc\.com|foxnews\.com|france24\.com|theguardian\.com|aljazeera\.com|nytimes\.com|ard\.de|zdf\.de|daserste\.de|tagesschau\.de|ardmediathek\.de|arte\.tv|bild\.de|9gag\.com)/)' "$input_file" > "$supported"
+            grep -v -E '^(https?://(www\.)?(youtube\.com|vimeo\.com|instagram\.com|tiktok\.com|mastodon\.social|bsky\.app|x\.com|linkedin\.com|twitch\.tv|cnn\.com|bbc\.com|foxnews\.com|france24\.com|theguardian\.com|aljazeera\.com|nytimes\.com|ard\.de|zdf\.de|daserste\.de|tagesschau\.de|ardmediathek\.de|arte\.tv|bild\.de|9gag\.com)/)' "$input_file" > "$unsupported"
+            if [ -s "$unsupported" ]; then
+                echo "ERROR: The following URLs are not supported by this Galaxy wrapper:" >&2
+                cat "$unsupported" >&2
+                echo "Please contact the Galaxy team to request adding support for those sites." >&2
+                exit 1
+            fi
+
+            # determine mode-specific flags
+            if [ "$extract_mode" = "-x" ]; then
+                mode_flags=("--audio-quality" "$audio_quality" "--audio-format" "mp3" "--output" "%(title)s%(id)s.%(ext)s")
+            else
+                mode_flags=("--format" "$video_quality" "--recode-video" "mp4" "--output" "%(title)s%(id)s.%(ext)s")
+            fi
+
+            # run yt-dlp
+            yt-dlp \
+                --quiet \
+                --socket-timeout 120 \
+                --limit-rate 1M \
+                --retries 10 \
+                --no-embed-thumbnail \
+                $write_comments \
+                $max_downloads \
+                $dateafter \
+                $datebefore \
+                $embed_subs \
+                $write_subs \
+                $sub_langs \
+                $write_info \
+                $extract_mode \
+                "${mode_flags[@]}" \
+                --batch-file "$supported"
+
+            # post-processing
+            if [ "$write_info" = "--write-info-json" ] && compgen -G "*.info.json" > /dev/null; then
+                mv *.info.json "$info_out"
+            fi
+            if [ "$write_subs" = "--write-subs" ] && compgen -G "*.srt" > /dev/null; then
+                mv *.srt "$subs"
+            fi
+            ]]>
+        </script>
+    </command>
+    <inputs>
+        <param name="input_file" type="data" format="txt" label="URLs to Download" help="Use a plain-text file listing one video or playlist URL per line. All links should start with 'https://www.' and links that redirect are not acceptable."/>
+        <conditional name="extract_mode">
+            <param name="extract_mode" type="select" label="Mode" help="Choose extract audio or download video">
+                <option value="">Download video</option>
+                <option value="-x" selected="true">Extract audio</option>
+            </param>
+            <when value="-x">
+                <param name="audio_quality" type="integer" optional="true" min="0" max="10" value="5" argument="--audio-quality ${audio_quality}" label="Audio quality" help="Use an integer from 0 (best) to 10 (worst) to specify the quality of the audio. Higher qualities use more space in your storage."/>
+            </when>
+            <when value="">
+                <param name="video_quality" type="select" optional="true" argument="--format ${video_quality}" label="Video and Audio quality" help="Select quality of the video to download either the single best or single worst combined audio+video stream. Higher quality use more space in your storage.">
+                    <option value="best*">Best (highest-quality video)</option>
+                    <option value="worst*" selected="true">Worst (lowest-quality video)</option>
+                </param>
+            </when>
+        </conditional>
+        <section name="advanced_options" title="Advanced Download Options" expanded="false">
+            <param name="write_comments" type="boolean" truevalue="--write-comments" falsevalue="--no-write-comments" value="true" label="Retrieve Comments" help="Fetch and include video comments in the info JSON."/>
+            <param name="max_downloads" type="integer" optional="true" value="20" min="0" max="1000" argument="--max-downloads ${max_downloads}" label="Max Number of Files" help="Stop after downloading this many videos (useful for sampling large playlists)."/>
+            <param name="dateafter" type="integer" optional="true" min="19700101" max="20500101" value="19700101" argument="--dateafter ${dateafter}" label="Uploaded On or After" help="Only download videos uploaded on or after this date (YYYYMMDD)."/>
+            <param name="datebefore" type="integer" optional="true" min="19700101" max="20500101" value="20500101" argument="--datebefore ${datebefore}" label="Uploaded On or Before" help="Only download videos uploaded on or before this date (YYYYMMDD)."/>
+            <param name="embed_subs" type="boolean" truevalue="--embed-subs" falsevalue="" value="false" label="Embed Captions/Subtitles" help="Mux subtitles directly into the video file if available."/>
+            <param name="write_subs" type="boolean" truevalue="--write-subs" falsevalue="" value="false" label="Download Subtitles" help="Download subtitle files separately if available."/>
+            <param name="sub_langs" type="text" optional="true" value="all" argument="--sub-lang ${sub_langs}" label="Subtitle Languages" help="Comma-separated language codes (e.g. en,es) for subtitles. Use 'all' for all available languages."/>
+            <param name="write_info" type="boolean" truevalue="--write-info-json" falsevalue="" value="false" label="Download Metadata JSON" help="Write video metadata as a JSON file."/>
+        </section>
+    </inputs>
+    <outputs>
+        <data name="video_out" format="mp4" label="Video file">
+            <filter> extract_mode == ''</filter>
+        </data>
+        <data name="audio_out" format="mp3" label="Audio file">
+            <filter> extract_mode == '-x'</filter>
+        </data>
+        <data name="info_out" format="json" label="Metadata JSON">
+            <filter> write_info == 'true'</filter>
+        </data>
+        <data name="subs" format="txt" label="Subtitle Files">
+            <filter> write_subs == 'true'</filter>
+        </data>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="1">
+            <param name="input_file" value="input-test1.txt" />
+            <param name="extract_mode" value="-x" />
+        </test>
+        <test expect_num_outputs="1">
+            <param name="input_file" value="input-test2.txt" />
+            <param name="extract_mode" value="-x" />
+        </test>
+        <test expect_num_outputs="2">
+            <param name="input_file" value="input-test3.txt" />
+            <param name="write_info" value="true" />
+        </test>
+        <test expect_num_outputs="3">
+            <param name="input_file" value="input-test4.txt" />
+            <param name="extract_mode" value="-x" />
+            <param name="write_info" value="true" />
+            <param name="write_subs" value="true" />
+            <param name="write_comments" value="true" />
+        </test>
+        <test expect_num_outputs="2">
+            <param name="input_file" value="input-test5.txt" />
+            <param name="write_info" value="true" />
+            <param name="write_comments" value="true" />
+        </test>
+        <test expect_num_outputs="2">
+            <param name="input_file" value="input-test6.txt" />
+            <param name="write_info" value="true" />
+            <param name="write_comments" value="true" />
+        </test>
+        <test expect_num_outputs="2">
+            <param name="input_file" value="input-test7.txt" />
+            <param name="extract_mode" value="-x" />
+            <param name="write_info" value="true" />
+            <param name="write_comments" value="true" />
+        </test>
+        <test expect_num_outputs="1">
+            <param name="input_file" value="input-test8.txt" />
+            <param name="extract_mode" value="-x" />
+            <param name="audio_quality" value="10" />
+        </test>
+        <test expect_num_outputs="2">
+            <param name="input_file" value="input-test9.txt" />
+            <param name="write_info" value="true" />
+            <param name="video_quality" value="best*" />
+        </test>
+    </tests>
+    <help><![CDATA[
+        **What it does**
+        yt-dlp is a feature-rich, open-source command-line downloader that fetches video and audio streams from various of sites.
+        **Input**
+        A plaintext file listing URLs, one per line.
+        **Output**
+        Downloaded audio/video files written according to the user inputs. Metadata or subtitle files will be provided when requested.
+    ]]></help>
+    <citations>
+        <expand macro="citations"/>
+    </citations>
+</tool>

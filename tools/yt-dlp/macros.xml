@@ -1,0 +1,30 @@
+<macros>
+    <token name="@TOOL_VERSION@">2025.6.30</token>
+    <token name="@VERSION_SUFFIX@">0</token>
+    <token name="@PROFILE_VERSION@">23.2</token>
+    <xml name="requirements">
+        <requirements>
+            <requirement type="package" version="@TOOL_VERSION@">yt-dlp</requirement>
+            <requirement type="package" version="7.1.1">ffmpeg</requirement>
+            <requirement type="package" version="0.12.0">curl-cffi</requirement>
+            <requirement type="package" version="2025.7.14">certifi</requirement>
+            <requirement type="package" version="1.1.0">brotli</requirement>
+            <requirement type="package" version="15.0.1">websockets</requirement>
+            <requirement type="package" version="2.32.4">requests</requirement>
+            <requirement type="package" version="1.47.0">mutagen</requirement>
+            <requirement type="package" version="1.2.0">xattr</requirement>
+            <requirement type="package" version="3.23.0">pycryptodome</requirement>
+            <requirement type="package" version="2.1.1">phantomjs</requirement>
+        </requirements>
+    </xml>
+    <xml name="citations">
+        <citation type="bibtex">@misc{yt-dlp,
+            author       = {{yt-dlp contributors}},
+            title        = {{yt-dlp: A feature-rich command-line audio/video downloader}},
+            howpublished = {\url{https://github.com/yt-dlp/yt-dlp}},
+            year         = {2025},
+            note         = {Accessed: 2025-07-16}
+        }
+        </citation>
+    </xml>
+</macros>

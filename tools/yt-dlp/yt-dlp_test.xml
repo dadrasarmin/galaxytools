@@ -1,0 +1,84 @@
+<tool id="yt-dlp" name="YT-DLP" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE_VERSION@">
+    <description>
+        yt-dlp is an open-source command-line program for downloading video and audio from hundreds
+        of websites, offering enhanced performance, flexible format selection, and extensive post-processing
+        features. On Galaxy, we offer it with limited options.
+    </description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <edam_topics>
+        <edam_topic>topic_0218</edam_topic>
+    </edam_topics>
+    <edam_operations>
+        <edam_operation>operation_2409</edam_operation>
+        <edam_operation>operation_0224</edam_operation>
+        <edam_operation>operation_2422</edam_operation>
+        <edam_operation>operation_2421</edam_operation>
+    </edam_operations>
+    <requirements>
+        <requirement type="package" version="@TOOL_VERSION@">yt-dlp</requirement>
+        <requirement type="package" version="7.1.1">ffmpeg</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+    <![CDATA[
+    yt-dlp --quiet --socket-timeout 120 --limit-rate 1M --retries 10 --restrict-filenames --no-embed-thumbnail $extract_mode_condional.video_audio_choice --batch-file '$input_file' --audio-format mp3
+    ]]>
+    </command>
+    <inputs>
+        <param name="input_file" type="data" format="txt" label="URLs to Download" help="Use a plain-text file listing one video or playlist URL per line. All links should start with 'https://www.' and links that redirect are not acceptable."/>
+        <conditional name="extract_mode_condional">
+            <param name="video_audio_choice" type="select" label="Mode" help="Choose extract audio or download video">
+                <option value="">Download video</option>
+                <option value="-x" selected="true">Extract audio</option>
+            </param>
+            <when value="-x">
+                <param name="audio_quality" type="integer" optional="true" min="0" max="10" value="5" argument="--audio-quality ${audio_quality}" label="Audio quality" help="Use an integer from 0 (best) to 10 (worst) to specify the quality of the audio. Higher qualities use more space in your storage."/>
+            </when>
+            <when value="">
+                <param name="video_quality" type="select" optional="true" argument="--format ${video_quality}" label="Video and Audio quality" help="Select quality of the video to download either the single best or single worst combined audio+video stream. Higher quality use more space in your storage.">
+                    <option value="best*">Best (highest-quality video)</option>
+                    <option value="worst*" selected="true">Worst (lowest-quality video)</option>
+                </param>
+            </when>
+        </conditional>
+        <section name="advanced_options" title="Advanced Download Options" expanded="false">
+            <param name="write_comments" type="boolean" truevalue="--write-comments" falsevalue="--no-write-comments" value="true" label="Retrieve Comments" help="Fetch and include video comments in the info JSON."/>
+            <param name="max_downloads" type="integer" optional="true" value="20" min="0" max="1000" argument="--max-downloads ${max_downloads}" label="Max Number of Files" help="Stop after downloading this many videos (useful for sampling large playlists)."/>
+            <param name="dateafter" type="integer" optional="true" min="19700101" max="20500101" value="19700101" argument="--dateafter ${dateafter}" label="Uploaded On or After" help="Only download videos uploaded on or after this date (YYYYMMDD)."/>
+            <param name="datebefore" type="integer" optional="true" min="19700101" max="20500101" value="20500101" argument="--datebefore ${datebefore}" label="Uploaded On or Before" help="Only download videos uploaded on or before this date (YYYYMMDD)."/>
+            <param name="embed_subs" type="boolean" truevalue="--embed-subs" falsevalue="" value="false" label="Embed Captions/Subtitles" help="Mux subtitles directly into the video file if available."/>
+            <param name="write_subs" type="boolean" truevalue="--write-subs" falsevalue="" value="false" label="Download Subtitles" help="Download subtitle files separately if available."/>
+            <param name="sub_langs" type="text" optional="true" value="" argument="--sub-lang ${sub_langs}" label="Subtitle Languages" help="Comma-separated language codes (e.g. en,es) for subtitles. Use 'all' for all available languages."/>
+            <param name="write_info" type="boolean" truevalue="--write-info-json" falsevalue="" value="false" label="Download Metadata JSON" help="Write video metadata as a JSON file."/>
+        </section>
+    </inputs>
+    <outputs>
+        <collection name="videos" type="list" label="${tool.name} on ${on_string}: Video files">
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)\.mp4" directory="working" ext='mp4' visible="true"/>
+            <filter> extract_mode_condional.video_audio_choice == "" </filter>
+        </collection>
+        <collection name="audios" type="list" label="${tool.name} on ${on_string}: Audio files">
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)\.mp3" directory="working" ext='mp3' visible="true"/>
+            <filter> extract_mode_condional.video_audio_choice == "-x" </filter>
+        </collection>
+    </outputs>
+    <tests>
+        <test expect_num_outputs="2">
+            <param name="input_file" value="input-test2.txt" />
+            <param name="video_audio_choice" value="-x" />
+            <output_collection name="audios" count="1"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+        **What it does**
+        yt-dlp is a feature-rich, open-source command-line downloader that fetches video and audio streams from various of sites.
+        **Input**
+        A plaintext file listing URLs, one per line.
+        **Output**
+        Downloaded audio/video files written according to the user inputs. Metadata or subtitle files will be provided when requested.
+    ]]></help>
+    <citations>
+        <expand macro="citations"/>
+    </citations>
+</tool>
